@@ -6,7 +6,10 @@
     "register": "Register",
     "profile": "Profile",
     "orders": "Orders",
-    "logout": "Logout"
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "auth": {
     "login": {
@@ -59,6 +62,15 @@
     "orders": "My Orders",
     "password": "Change Password"
   },
+  "footer": {
+    "copyright": "© {year} TicketHub",
+    "links": {
+      "about": "About",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "contact": "Contact"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -66,6 +78,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "close": "Close"
+    "close": "Close",
+    "skipToContent": "Skip to main content"
   }
 }
