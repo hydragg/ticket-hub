@@ -52,9 +52,41 @@
       "strong": "Strong"
     }
   },
+  "home": {
+    "hero": {
+      "carousel": "Featured events carousel",
+      "cta": "Get Tickets",
+      "prev": "Previous slide",
+      "next": "Next slide"
+    },
+    "categories": {
+      "title": "Browse by Category",
+      "concert": "Concerts",
+      "comedy": "Comedy",
+      "theater": "Theater",
+      "all": "All Events"
+    },
+    "featured": {
+      "title": "Featured Events",
+      "viewAll": "View All"
+    },
+    "upcoming": {
+      "title": "Coming Soon",
+      "viewMore": "More Events"
+    }
+  },
   "events": {
     "title": "All Events",
     "empty": "No events found",
+    "categories": {
+      "concert": "Concert",
+      "comedy": "Comedy",
+      "theater": "Theater",
+      "other": "Other"
+    },
+    "from": "From",
+    "soldOut": "Sold Out",
+    "buyTickets": "Get Tickets",
     "filter": {
       "category": "Category",
       "date": "Date",

@@ -52,9 +52,41 @@
       "strong": "非常強"
     }
   },
+  "home": {
+    "hero": {
+      "carousel": "精選活動輪播",
+      "cta": "立即購票",
+      "prev": "上一張",
+      "next": "下一張"
+    },
+    "categories": {
+      "title": "活動分類",
+      "concert": "演唱會",
+      "comedy": "喜劇脫口秀",
+      "theater": "音樂劇場",
+      "all": "全部活動"
+    },
+    "featured": {
+      "title": "精選活動",
+      "viewAll": "查看全部"
+    },
+    "upcoming": {
+      "title": "即將開演",
+      "viewMore": "更多活動"
+    }
+  },
   "events": {
     "title": "所有活動",
     "empty": "找不到符合的活動",
+    "categories": {
+      "concert": "演唱會",
+      "comedy": "脫口秀",
+      "theater": "音樂劇",
+      "other": "其他"
+    },
+    "from": "起",
+    "soldOut": "已售完",
+    "buyTickets": "立即購票",
     "filter": {
       "category": "分類",
       "date": "日期",
