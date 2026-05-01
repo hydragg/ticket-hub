@@ -87,12 +87,25 @@
     "from": "起",
     "soldOut": "已售完",
     "buyTickets": "立即購票",
+    "count": "找到 {count} 個活動",
+    "allCategories": "所有分類",
+    "allCities": "所有城市",
     "filter": {
+      "title": "篩選",
       "category": "分類",
       "date": "日期",
+      "dateFrom": "開始日期",
+      "dateTo": "結束日期",
       "city": "城市",
-      "price": "價格",
-      "reset": "清除篩選"
+      "price": "票價範圍",
+      "priceRange": "NT$ {min} – NT$ {max}",
+      "reset": "清除篩選",
+      "apply": "套用"
+    },
+    "pagination": {
+      "prev": "上一頁",
+      "next": "下一頁",
+      "info": "第 {page} 頁，共 {total} 頁"
     }
   },
   "checkout": {

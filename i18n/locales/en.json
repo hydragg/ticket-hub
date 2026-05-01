@@ -87,12 +87,25 @@
     "from": "From",
     "soldOut": "Sold Out",
     "buyTickets": "Get Tickets",
+    "count": "{count} events found",
+    "allCategories": "All Categories",
+    "allCities": "All Cities",
     "filter": {
+      "title": "Filter",
       "category": "Category",
       "date": "Date",
+      "dateFrom": "Start Date",
+      "dateTo": "End Date",
       "city": "City",
-      "price": "Price",
-      "reset": "Clear filters"
+      "price": "Price Range",
+      "priceRange": "NT$ {min} – NT$ {max}",
+      "reset": "Clear filters",
+      "apply": "Apply"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "info": "Page {page} of {total}"
     }
   },
   "checkout": {
