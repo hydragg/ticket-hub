@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Toaster } from '~/components/ui/sonner'
 
+const route = useRoute()
+
 useSeoMeta({
   titleTemplate: title => (title ? `${title} | TicketHub` : 'TicketHub'),
   ogSiteName: 'TicketHub',
@@ -12,7 +14,7 @@ useSeoMeta({
 <template>
   <NuxtLoadingIndicator color="var(--color-primary)" />
   <NuxtLayout>
-    <NuxtPage />
+    <NuxtPage :key="route.path" />
   </NuxtLayout>
   <Toaster rich-colors position="top-right" />
 </template>
