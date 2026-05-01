@@ -14,28 +14,42 @@
   "auth": {
     "login": {
       "title": "登入",
+      "description": "輸入您的帳號資料以繼續",
       "email": "電子郵件",
       "password": "密碼",
       "submit": "登入",
       "forgotPassword": "忘記密碼？",
       "noAccount": "還沒有帳號？",
-      "registerLink": "立即註冊"
+      "registerLink": "立即註冊",
+      "success": "登入成功，歡迎回來！",
+      "error": "電子郵件或密碼錯誤"
     },
     "register": {
       "title": "建立帳號",
+      "description": "填寫以下資料建立您的帳號",
       "name": "姓名",
       "email": "電子郵件",
       "password": "密碼",
       "confirmPassword": "確認密碼",
       "submit": "建立帳號",
       "hasAccount": "已有帳號？",
-      "loginLink": "登入"
+      "loginLink": "登入",
+      "success": "帳號建立成功！"
     },
     "forgotPassword": {
       "title": "忘記密碼",
+      "description": "輸入您的電子郵件，我們將寄送重設連結",
       "email": "電子郵件",
       "submit": "送出重設連結",
-      "backToLogin": "返回登入"
+      "backToLogin": "返回登入",
+      "success": "重設連結已寄送，請檢查您的信箱"
+    },
+    "passwordStrength": {
+      "label": "密碼強度",
+      "weak": "弱",
+      "fair": "一般",
+      "good": "強",
+      "strong": "非常強"
     }
   },
   "events": {

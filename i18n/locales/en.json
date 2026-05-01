@@ -14,28 +14,42 @@
   "auth": {
     "login": {
       "title": "Sign In",
+      "description": "Enter your credentials to continue",
       "email": "Email",
       "password": "Password",
       "submit": "Sign In",
       "forgotPassword": "Forgot password?",
       "noAccount": "Don't have an account?",
-      "registerLink": "Sign Up"
+      "registerLink": "Sign Up",
+      "success": "Welcome back!",
+      "error": "Invalid email or password"
     },
     "register": {
       "title": "Create Account",
+      "description": "Fill in your details to create an account",
       "name": "Name",
       "email": "Email",
       "password": "Password",
       "confirmPassword": "Confirm Password",
       "submit": "Create Account",
       "hasAccount": "Already have an account?",
-      "loginLink": "Sign In"
+      "loginLink": "Sign In",
+      "success": "Account created successfully!"
     },
     "forgotPassword": {
       "title": "Forgot Password",
+      "description": "Enter your email and we'll send you a reset link",
       "email": "Email",
       "submit": "Send Reset Link",
-      "backToLogin": "Back to Login"
+      "backToLogin": "Back to Login",
+      "success": "Reset link sent, please check your inbox"
+    },
+    "passwordStrength": {
+      "label": "Password strength",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
     }
   },
   "events": {
