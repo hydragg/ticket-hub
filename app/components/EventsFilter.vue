@@ -5,15 +5,17 @@ import type { EventCategory } from '~/types'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const localePath = useLocalePath()
 
 const PRICE_MAX = 8000
 const PRICE_STEP = 200
 
-const category = ref<string>((route.query.category as string) ?? '')
-const city = ref<string>((route.query.city as string) ?? '')
+const ALL = 'all'
+const category = ref<string>((route.query.category as string) || ALL)
+const city = ref<string>((route.query.city as string) || ALL)
 const dateFrom = ref<string>((route.query.dateFrom as string) ?? '')
 const dateTo = ref<string>((route.query.dateTo as string) ?? '')
-const priceRange = ref<number[]>([
+const priceRange = ref<[number, number]>([
   Number(route.query.priceMin ?? 0),
   Number(route.query.priceMax ?? PRICE_MAX),
 ])
@@ -23,8 +25,8 @@ const mobileOpen = ref(false)
 const hasActiveFilters = computed(
   () =>
     !!(
-      category.value ||
-      city.value ||
+      (category.value && category.value !== ALL) ||
+      (city.value && city.value !== ALL) ||
       dateFrom.value ||
       dateTo.value ||
       priceRange.value[0] > 0 ||
@@ -43,8 +45,8 @@ const cities = ['台北', '台中', '高雄']
 
 function buildQuery() {
   const q: Record<string, string> = {}
-  if (category.value) q.category = category.value
-  if (city.value) q.city = city.value
+  if (category.value && category.value !== ALL) q.category = category.value
+  if (city.value && city.value !== ALL) q.city = city.value
   if (dateFrom.value) q.dateFrom = dateFrom.value
   if (dateTo.value) q.dateTo = dateTo.value
   if (priceRange.value[0] > 0) q.priceMin = String(priceRange.value[0])
@@ -53,12 +55,13 @@ function buildQuery() {
 }
 
 function applyFilters() {
+  if (route.path !== localePath('/events')) return
   router.push({ query: buildQuery() })
 }
 
 function reset() {
-  category.value = ''
-  city.value = ''
+  category.value = ALL
+  city.value = ALL
   dateFrom.value = ''
   dateTo.value = ''
   priceRange.value = [0, PRICE_MAX]
@@ -124,7 +127,7 @@ const inputClass =
             <UiSelectValue :placeholder="t('events.allCategories')" />
           </UiSelectTrigger>
           <UiSelectContent>
-            <UiSelectItem value="">{{ t('events.allCategories') }}</UiSelectItem>
+            <UiSelectItem value="all">{{ t('events.allCategories') }}</UiSelectItem>
             <UiSelectItem
               v-for="cat in categories"
               :key="cat.value"
@@ -146,7 +149,7 @@ const inputClass =
             <UiSelectValue :placeholder="t('events.allCities')" />
           </UiSelectTrigger>
           <UiSelectContent>
-            <UiSelectItem value="">{{ t('events.allCities') }}</UiSelectItem>
+            <UiSelectItem value="all">{{ t('events.allCities') }}</UiSelectItem>
             <UiSelectItem v-for="c in cities" :key="c" :value="c">
               {{ c }}
             </UiSelectItem>
