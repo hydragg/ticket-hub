@@ -25,6 +25,12 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
   ],
 
+  eslint: {
+    config: {
+      typescript: true,
+    },
+  },
+
   i18n: {
     defaultLocale: 'zh-TW',
     locales: [
