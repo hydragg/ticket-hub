@@ -1,4 +1,4 @@
-{
+﻿{
   "nav": {
     "home": "首頁",
     "events": "活動",
@@ -107,6 +107,21 @@
       "next": "下一頁",
       "info": "第 {page} 頁，共 {total} 頁"
     }
+  },
+  "event": {
+    "notFound": "找不到此活動",
+    "backToEvents": "返回活動列表",
+    "description": "活動介紹",
+    "tickets": "票種與票價",
+    "available": "剩餘 {count} 張",
+    "soldOut": "已售完",
+    "addToCart": "加入購物車",
+    "addedToCart": "已加入購物車",
+    "related": "相關活動",
+    "gallery": "更多圖片",
+    "increase": "增加",
+    "decrease": "減少",
+    "quantity": "數量"
   },
   "checkout": {
     "steps": {

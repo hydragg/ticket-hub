@@ -108,6 +108,21 @@
       "info": "Page {page} of {total}"
     }
   },
+  "event": {
+    "notFound": "Event not found",
+    "backToEvents": "Back to Events",
+    "description": "About This Event",
+    "tickets": "Tickets",
+    "available": "{count} left",
+    "soldOut": "Sold Out",
+    "addToCart": "Add to Cart",
+    "addedToCart": "Added to cart",
+    "related": "Related Events",
+    "gallery": "More Photos",
+    "increase": "Increase",
+    "decrease": "Decrease",
+    "quantity": "Quantity"
+  },
   "checkout": {
     "steps": {
       "seat": "Select Seat",
