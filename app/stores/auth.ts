@@ -4,7 +4,7 @@ import type { User, ApiResponse, AuthTokens } from '~/types'
 
 function getRefreshTokenFromCookie(): string | null {
   const match = document.cookie.match(/(?:^|;\s*)refresh_token=([^;]*)/)
-  return match ? decodeURIComponent(match[1]) : null
+  return match ? decodeURIComponent(match[1]!) : null
 }
 
 function setRefreshTokenCookie(token: string) {

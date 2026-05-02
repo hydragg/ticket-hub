@@ -110,7 +110,7 @@ function formatDate(dateStr: string) {
               :src="event.coverImage"
               :alt="event.title"
               class="h-full w-full object-cover"
-            />
+            >
             <div
               class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent"
             />

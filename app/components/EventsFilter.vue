@@ -168,7 +168,7 @@ const inputClass =
           type="date"
           :class="inputClass"
           @change="applyFilters"
-        />
+        >
       </div>
 
       <!-- Date To -->
@@ -182,7 +182,7 @@ const inputClass =
           type="date"
           :class="inputClass"
           @change="applyFilters"
-        />
+        >
       </div>
 
       <!-- Price Range -->

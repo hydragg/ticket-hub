@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MenuIcon, XIcon, TicketIcon, GlobeIcon } from 'lucide-vue-next'
+import { MenuIcon, TicketIcon, GlobeIcon } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuContent,

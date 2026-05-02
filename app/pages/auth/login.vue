@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm, useField } from 'vee-validate'
+import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { toast } from 'vue-sonner'
 import { EyeIcon, EyeOffIcon } from 'lucide-vue-next'
