@@ -182,9 +182,55 @@
     }
   },
   "dashboard": {
+    "nav": "Dashboard",
     "profile": "Profile",
     "orders": "My Orders",
-    "password": "Change Password"
+    "password": "Change Password",
+    "profilePage": {
+      "title": "Personal Information",
+      "name": "Name",
+      "email": "Email",
+      "emailHint": "Email cannot be changed",
+      "save": "Save Changes",
+      "saved": "Profile updated"
+    },
+    "ordersPage": {
+      "title": "My Orders",
+      "empty": "You have no orders yet",
+      "browseEvents": "Browse Events",
+      "date": "Date",
+      "event": "Event",
+      "total": "Total",
+      "view": "View",
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded"
+      }
+    },
+    "orderDetail": {
+      "title": "Order Details",
+      "back": "Back to Orders",
+      "orderNumber": "Order",
+      "date": "Order Date",
+      "ticketType": "Ticket",
+      "qty": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "qrTitle": "Entry QR Code",
+      "qrHint": "Show this at the venue entrance",
+      "notFound": "Order not found"
+    },
+    "passwordPage": {
+      "title": "Change Password",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm New Password",
+      "submit": "Update Password",
+      "success": "Password updated successfully",
+      "wrongCurrent": "Current password is incorrect"
+    }
   },
   "footer": {
     "copyright": "© {year} TicketHub",

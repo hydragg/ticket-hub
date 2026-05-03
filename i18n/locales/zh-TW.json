@@ -182,9 +182,55 @@
     }
   },
   "dashboard": {
+    "nav": "會員中心",
     "profile": "個人資料",
     "orders": "我的訂單",
-    "password": "修改密碼"
+    "password": "修改密碼",
+    "profilePage": {
+      "title": "個人資訊",
+      "name": "姓名",
+      "email": "電子郵件",
+      "emailHint": "電子郵件無法修改",
+      "save": "儲存變更",
+      "saved": "資料已更新"
+    },
+    "ordersPage": {
+      "title": "我的訂單",
+      "empty": "目前沒有任何訂單",
+      "browseEvents": "瀏覽活動",
+      "date": "日期",
+      "event": "活動",
+      "total": "金額",
+      "view": "查看",
+      "status": {
+        "pending": "待確認",
+        "confirmed": "已確認",
+        "cancelled": "已取消",
+        "refunded": "已退款"
+      }
+    },
+    "orderDetail": {
+      "title": "訂單詳情",
+      "back": "返回訂單列表",
+      "orderNumber": "訂單編號",
+      "date": "訂單日期",
+      "ticketType": "票種",
+      "qty": "數量",
+      "unitPrice": "單價",
+      "total": "合計",
+      "qrTitle": "入場 QR Code",
+      "qrHint": "請於入場時出示此 QR Code",
+      "notFound": "找不到此訂單"
+    },
+    "passwordPage": {
+      "title": "修改密碼",
+      "current": "目前密碼",
+      "new": "新密碼",
+      "confirm": "確認新密碼",
+      "submit": "更新密碼",
+      "success": "密碼更新成功",
+      "wrongCurrent": "目前密碼不正確"
+    }
   },
   "footer": {
     "copyright": "© {year} TicketHub",
