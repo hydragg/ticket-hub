@@ -89,6 +89,7 @@ export interface AuthResponse {
 
 export interface CartItem {
   eventId: string
+  eventSlug: string
   ticketId: string
   ticketType: string
   quantity: number
