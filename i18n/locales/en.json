@@ -9,7 +9,8 @@
     "logout": "Logout",
     "dashboard": "Dashboard",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "cart": "Cart ({count} items)"
   },
   "auth": {
     "login": {
@@ -124,11 +125,60 @@
     "quantity": "Quantity"
   },
   "checkout": {
+    "stepsNav": "Checkout progress",
     "steps": {
       "seat": "Select Seat",
       "confirm": "Confirm",
       "payment": "Payment",
       "done": "Done"
+    },
+    "seat": {
+      "title": "Select Your Seats",
+      "instruction": "Choose seats for each ticket type",
+      "stage": "STAGE",
+      "legend": {
+        "available": "Available",
+        "sold": "Sold Out",
+        "selected": "Selected"
+      },
+      "remaining": "{count} seat(s) left to select",
+      "allSelected": "All seats selected",
+      "continue": "Continue"
+    },
+    "confirm": {
+      "title": "Review Your Order",
+      "ticketType": "Ticket",
+      "seats": "Seats",
+      "qty": "Qty",
+      "unitPrice": "Unit Price",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "continue": "Proceed to Payment",
+      "back": "Back",
+      "remove": "Remove",
+      "emptyCart": "Your cart is empty",
+      "goEvents": "Browse Events"
+    },
+    "payment": {
+      "title": "Payment Details",
+      "timeLeft": "Time remaining: {time}",
+      "expiredTitle": "Session Expired",
+      "expiredDesc": "Your reservation time has expired. Please start over.",
+      "restart": "Browse Events",
+      "cardNumber": "Card Number",
+      "cardHolder": "Cardholder Name",
+      "expiry": "Expiry (MM/YY)",
+      "cvv": "CVV",
+      "back": "Back",
+      "submit": "Pay NT$ {amount}",
+      "processing": "Processing..."
+    },
+    "done": {
+      "title": "Order Confirmed!",
+      "description": "Your tickets have been booked successfully.",
+      "orderNumber": "Order",
+      "viewOrders": "View My Orders",
+      "backHome": "Back to Home"
     }
   },
   "dashboard": {

@@ -9,7 +9,8 @@
     "logout": "登出",
     "dashboard": "會員中心",
     "openMenu": "開啟選單",
-    "closeMenu": "關閉選單"
+    "closeMenu": "關閉選單",
+    "cart": "購物車（{count} 件）"
   },
   "auth": {
     "login": {
@@ -124,11 +125,60 @@
     "quantity": "數量"
   },
   "checkout": {
+    "stepsNav": "購票流程",
     "steps": {
       "seat": "選座",
       "confirm": "確認",
       "payment": "付款",
       "done": "完成"
+    },
+    "seat": {
+      "title": "選擇座位",
+      "instruction": "請依票種選取您的座位",
+      "stage": "舞台",
+      "legend": {
+        "available": "可選",
+        "sold": "已售出",
+        "selected": "已選"
+      },
+      "remaining": "還需選 {count} 個座位",
+      "allSelected": "座位已選齊",
+      "continue": "下一步"
+    },
+    "confirm": {
+      "title": "確認訂單",
+      "ticketType": "票種",
+      "seats": "座位",
+      "qty": "數量",
+      "unitPrice": "單價",
+      "subtotal": "小計",
+      "total": "合計",
+      "continue": "前往付款",
+      "back": "上一步",
+      "remove": "移除",
+      "emptyCart": "購物車是空的",
+      "goEvents": "瀏覽活動"
+    },
+    "payment": {
+      "title": "付款資訊",
+      "timeLeft": "剩餘時間：{time}",
+      "expiredTitle": "購票時間已到期",
+      "expiredDesc": "您的購票時間已過期，請重新選票",
+      "restart": "瀏覽活動",
+      "cardNumber": "卡號",
+      "cardHolder": "持卡人姓名",
+      "expiry": "有效期限（MM/YY）",
+      "cvv": "安全碼",
+      "back": "上一步",
+      "submit": "立即付款 NT$ {amount}",
+      "processing": "處理中..."
+    },
+    "done": {
+      "title": "訂單成立！",
+      "description": "您的票券已確認預訂",
+      "orderNumber": "訂單編號",
+      "viewOrders": "查看我的訂單",
+      "backHome": "返回首頁"
     }
   },
   "dashboard": {
