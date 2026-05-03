@@ -76,6 +76,7 @@ function addToCart() {
     if (q > 0) {
       cartStore.addItem({
         eventId: event.value.id,
+        eventSlug: event.value.slug,
         ticketId: tk.id,
         ticketType: tk.type,
         quantity: q,

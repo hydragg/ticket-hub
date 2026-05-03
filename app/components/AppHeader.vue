@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MenuIcon, TicketIcon, GlobeIcon } from 'lucide-vue-next'
+import { MenuIcon, TicketIcon, GlobeIcon, ShoppingCartIcon } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ const localePath = useLocalePath()
 const switchLocalePath = useSwitchLocalePath()
 const { isAuthenticated, user, logout } = useAuth()
 
+const cartStore = useCartStore()
 const mobileOpen = ref(false)
 
 const navLinks = computed(() => [
@@ -69,6 +70,22 @@ async function handleLogout() {
         >
           <GlobeIcon class="h-4 w-4" aria-hidden="true" />
           {{ otherLocaleLabel }}
+        </NuxtLink>
+
+        <!-- Cart icon (desktop) -->
+        <NuxtLink
+          v-if="!cartStore.isEmpty"
+          :to="localePath('/checkout')"
+          class="relative hidden md:flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          :aria-label="t('nav.cart', { count: cartStore.totalItems })"
+        >
+          <ShoppingCartIcon class="h-5 w-5" aria-hidden="true" />
+          <span
+            class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground"
+            aria-hidden="true"
+          >
+            {{ cartStore.totalItems }}
+          </span>
         </NuxtLink>
 
         <!-- Desktop: authenticated -->
@@ -132,6 +149,16 @@ async function handleLogout() {
             </SheetHeader>
 
             <nav class="mt-6 flex flex-col gap-1" :aria-label="t('nav.home')">
+              <!-- Cart link (mobile) -->
+              <NuxtLink
+                v-if="!cartStore.isEmpty"
+                :to="localePath('/checkout')"
+                class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                @click="mobileOpen = false"
+              >
+                <ShoppingCartIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
+                {{ t('nav.cart', { count: cartStore.totalItems }) }}
+              </NuxtLink>
               <NuxtLink
                 v-for="link in navLinks"
                 :key="link.to"
