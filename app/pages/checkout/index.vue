@@ -102,16 +102,24 @@ const {
 } = useExpiryCountdown(computed(() => cartStore.expiresAt))
 
 const showExpiredModal = ref(false)
+const expiredDialogRef = ref<HTMLElement | null>(null)
 
 watch(countdownIsExpired, (expired) => {
   if (expired && currentStep.value === 3) {
     showExpiredModal.value = true
+    nextTick(() => expiredDialogRef.value?.querySelector<HTMLElement>('button')?.focus())
   }
 })
 
 function handleExpired() {
   cartStore.clearCart()
   void router.push(localePath('/events'))
+}
+
+function trapModalFocus(e: KeyboardEvent) {
+  if (e.key === 'Tab') {
+    e.preventDefault() // single focusable element — keep focus on the button
+  }
 }
 
 // Payment form
@@ -414,11 +422,13 @@ useSeoMeta({ title: () => `${t('checkout.steps.seat')} | TicketHub` })
       <!-- Session expired overlay -->
       <div
         v-if="showExpiredModal"
+        ref="expiredDialogRef"
         class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         role="alertdialog"
         aria-labelledby="expired-title"
         aria-describedby="expired-desc"
         aria-modal="true"
+        @keydown="trapModalFocus"
       >
         <div class="mx-4 max-w-sm rounded-xl border bg-card p-8 text-center shadow-lg">
           <ClockIcon class="mx-auto mb-4 h-12 w-12 text-destructive" aria-hidden="true" />
