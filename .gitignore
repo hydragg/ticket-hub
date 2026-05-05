@@ -29,6 +29,7 @@ coverage/
 # Planning / AI tooling docs (local only)
 TECHSTACK.md
 todo.md
+CLAUDE.md
 
 # Claude Code local settings
 .claude/settings.local.json
