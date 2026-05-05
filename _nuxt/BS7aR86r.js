@@ -1,0 +1,1 @@
+import{c as s}from"./CwA5foNf.js";import{f as o,o as t,c as a,q as c,n as r}from"./DBHHKGW9.js";const l=o({__name:"Skeleton",props:{class:{type:[Boolean,null,String,Object,Array]}},setup(e){const n=e;return(m,p)=>(t(),a("div",{class:c(r(s)("animate-pulse rounded-md bg-muted",n.class))},null,2))}}),u=Object.assign(l,{__name:"UiSkeleton"});export{u as _};

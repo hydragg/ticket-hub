@@ -1,0 +1,1 @@
+import{f as o,h as s,_ as n,o as c,c as r,A as _}from"./DBHHKGW9.js";const d=o({__name:"index",async setup(l){let e,a;const t=s();return[e,a]=n(()=>_(t("/dashboard/profile"),{replace:!0})),await e,a(),(p,i)=>(c(),r("div"))}});export{d as default};

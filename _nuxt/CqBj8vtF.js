@@ -1,0 +1,1 @@
+import{useApi as c}from"./Ck7F3by6.js";function o(){const e=c();async function a(t){const{data:n}=await e.get("/events",{params:t});return n}async function s(t){const{data:n}=await e.get(`/events/${t}`);return n}return{fetchEvents:a,fetchEvent:s}}export{o as u};
