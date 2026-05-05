@@ -116,8 +116,11 @@
     "tickets": "Tickets",
     "available": "{count} left",
     "soldOut": "Sold Out",
+    "buyNow": "Buy Now",
     "addToCart": "Add to Cart",
     "addedToCart": "Added to cart",
+    "ticketSoldOut": "Tickets sold out. Please choose a different type or try again later.",
+    "reserving": "Reserving…",
     "related": "Related Events",
     "gallery": "More Photos",
     "increase": "Increase",
@@ -144,6 +147,17 @@
       "remaining": "{count} seat(s) left to select",
       "allSelected": "All seats selected",
       "continue": "Continue"
+    },
+    "reservation": {
+      "title": "Reserved Ticket",
+      "qty": "× {count}"
+    },
+    "cancel": {
+      "button": "Cancel Reservation",
+      "title": "Cancel Reservation",
+      "desc": "Are you sure you want to cancel? Your tickets will be released immediately and this cannot be undone.",
+      "confirm": "Confirm Cancel",
+      "back": "Keep My Seats"
     },
     "confirm": {
       "title": "Review Your Order",
@@ -203,11 +217,18 @@
       "total": "Total",
       "view": "View",
       "status": {
+        "pending_seats": "Selecting Seats",
+        "pending_payment": "Awaiting Payment",
         "pending": "Pending",
         "confirmed": "Confirmed",
         "cancelled": "Cancelled",
         "refunded": "Refunded"
-      }
+      },
+      "pendingSection": "Incomplete Orders",
+      "pendingAlert": "This reservation is not yet complete. Please continue to finish your purchase.",
+      "resume": "Continue Purchase",
+      "cancelPending": "Cancel Reservation",
+      "cancelPendingConfirm": "Cancel this reservation? Your tickets will be released immediately."
     },
     "orderDetail": {
       "title": "Order Details",

@@ -1,44 +1,98 @@
 <script setup lang="ts">
+import { isAxiosError } from 'axios'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { toast } from 'vue-sonner'
-import { CheckCircleIcon, ClockIcon, Minus, Plus, Trash2 } from 'lucide-vue-next'
-import type { Order } from '~/types'
+import { CheckCircleIcon, ClockIcon } from 'lucide-vue-next'
+import { useReservationStore } from '~/stores/reservation'
+import type { CartItem, Order } from '~/types'
 
 definePageMeta({ middleware: 'auth' })
 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
-const cartStore = useCartStore()
-const { fetchEvent } = useEvents()
-const { createOrder } = useOrders()
+const reservationStore = useReservationStore()
+const { completeOrder } = useOrders()
 
-// ── Steps ────────────────────────────────────────────
-const currentStep = ref<1 | 2 | 3 | 4>(1)
+// ── Session restore on mount ─────────────────────────
+const isRestoring = ref(true)
+
+onMounted(async () => {
+  const id = reservationStore.reservationId
+  if (!id) {
+    await router.replace(localePath('/events'))
+    return
+  }
+  try {
+    const data = await reservationStore.fetchReservation(id)
+    if (data.status === 'expired' || data.status === 'cancelled') {
+      toast.error(t('checkout.payment.expiredTitle'))
+      reservationStore.clearState()
+      await router.replace(localePath('/events'))
+      return
+    }
+    if (data.status === 'pending_payment') {
+      startCountdown()
+      startPolling()
+    }
+  }
+  catch {
+    reservationStore.clearState()
+    await router.replace(localePath('/events'))
+  }
+  finally {
+    isRestoring.value = false
+  }
+})
+
+// 30-second background poll to sync expiry with backend
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+function startPolling() {
+  if (pollTimer) return
+  pollTimer = setInterval(async () => {
+    const id = reservationStore.reservationId
+    if (!id) { stopPolling(); return }
+    try {
+      const data = await reservationStore.fetchReservation(id)
+      if (data.status === 'expired' || data.status === 'cancelled') stopPolling()
+    }
+    catch { stopPolling() }
+  }, 30_000)
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+onUnmounted(stopPolling)
+
+// ── Computed state ───────────────────────────────────
+const reservation = computed(() => reservationStore.reservation)
+const currentStep = computed(() => reservationStore.currentStep)
+const isDone = ref(false)
+const completedOrder = ref<Order | null>(null)
 
 const steps = computed(() => [
   { key: 'seat', label: t('checkout.steps.seat') },
-  { key: 'confirm', label: t('checkout.steps.confirm') },
   { key: 'payment', label: t('checkout.steps.payment') },
   { key: 'done', label: t('checkout.steps.done') },
 ])
 
-// Redirect when cart is empty (after mount to allow SSR)
-onMounted(() => {
-  if (cartStore.isEmpty) {
-    void router.push(localePath('/events'))
-  }
-})
+const stepperCurrent = computed((): 1 | 2 | 3 =>
+  isDone.value ? 3 : currentStep.value,
+)
 
 // ── Event data ───────────────────────────────────────
-const eventSlug = computed(() => cartStore.items[0]?.eventSlug ?? null)
+const eventSlug = computed(() => reservationStore.eventSlug)
 
 const { data: event } = useAsyncData(
   'checkout-event',
   async () => {
     if (!eventSlug.value) return null
+    const { fetchEvent } = useEvents()
     const res = await fetchEvent(eventSlug.value)
     return res.data ?? null
   },
@@ -48,81 +102,102 @@ const { data: event } = useAsyncData(
 // ── Step 1: Seat selection ───────────────────────────
 const selectedSeats = ref<Record<string, string[]>>({})
 
-const allSeatsSelected = computed(() =>
-  cartStore.items.length > 0
-  && cartStore.items.every(
-    item => (selectedSeats.value[item.ticketId]?.length ?? 0) >= item.quantity,
-  ),
-)
-
-function formatSelectedSeats(ticketId: string): string {
-  const seats = selectedSeats.value[ticketId] ?? []
-  return seats.map(id => id.split(':')[1] ?? id).join(', ')
-}
-
-// ── Step 2: Order actions ────────────────────────────
-function decreaseItemQty(ticketId: string) {
-  const item = cartStore.items.find(i => i.ticketId === ticketId)
-  if (!item) return
-  if (item.quantity <= 1) {
-    removeItem(ticketId)
-    return
-  }
-  cartStore.updateQuantity(item.eventId, ticketId, item.quantity - 1)
-  const seats = selectedSeats.value[ticketId]
-  if (seats && seats.length >= item.quantity) {
-    selectedSeats.value = { ...selectedSeats.value, [ticketId]: seats.slice(0, item.quantity - 1) }
-  }
-}
-
-function increaseItemQty(ticketId: string) {
-  const item = cartStore.items.find(i => i.ticketId === ticketId)
-  if (!item) return
-  cartStore.updateQuantity(item.eventId, ticketId, item.quantity + 1)
-}
-
-function removeItem(ticketId: string) {
-  const item = cartStore.items.find(i => i.ticketId === ticketId)
-  if (item) cartStore.removeItem(item.eventId, ticketId)
-  selectedSeats.value = Object.fromEntries(
-    Object.entries(selectedSeats.value).filter(([k]) => k !== ticketId),
-  )
-}
-
-const orderTotal = computed(() =>
-  cartStore.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
-)
-
-// ── Step 3: Countdown + payment ──────────────────────
-const {
-  isExpired: countdownIsExpired,
-  formatted: countdownFormatted,
-  start: startCountdown,
-  stop: stopCountdown,
-} = useExpiryCountdown(computed(() => cartStore.expiresAt))
-
-const showExpiredModal = ref(false)
-const expiredDialogRef = ref<HTMLElement | null>(null)
-
-watch(countdownIsExpired, (expired) => {
-  if (expired && currentStep.value === 3) {
-    showExpiredModal.value = true
-    nextTick(() => expiredDialogRef.value?.querySelector<HTMLElement>('button')?.focus())
-  }
+const seatMapItems = computed((): CartItem[] => {
+  const rsv = reservation.value
+  if (!rsv || !event.value) return []
+  const ticket = event.value.tickets.find(tk => tk.id === rsv.ticketId)
+  if (!ticket) return []
+  return [{
+    eventId: rsv.eventId,
+    eventSlug: eventSlug.value ?? '',
+    ticketId: rsv.ticketId,
+    ticketType: ticket.type,
+    quantity: rsv.quantity,
+    unitPrice: ticket.price,
+  }]
 })
 
-function handleExpired() {
-  cartStore.clearCart()
-  void router.push(localePath('/events'))
-}
+const allSeatsSelected = computed(() => {
+  const rsv = reservation.value
+  if (!rsv) return false
+  return (selectedSeats.value[rsv.ticketId]?.length ?? 0) >= rsv.quantity
+})
 
-function trapModalFocus(e: KeyboardEvent) {
-  if (e.key === 'Tab') {
-    e.preventDefault() // single focusable element — keep focus on the button
+const isUpdatingSeats = ref(false)
+
+async function confirmSeats() {
+  const rsv = reservation.value
+  if (!rsv) return
+  const seats = selectedSeats.value[rsv.ticketId] ?? []
+  isUpdatingSeats.value = true
+  try {
+    await reservationStore.updateSeats(seats)
+    startCountdown()
+    startPolling()
+  }
+  catch (e) {
+    if (isAxiosError(e) && e.response?.status === 410) {
+      toast.error(t('checkout.payment.expiredTitle'))
+      reservationStore.clearState()
+      await router.push(localePath('/events'))
+    }
+    else {
+      toast.error(t('common.error'))
+    }
+  }
+  finally {
+    isUpdatingSeats.value = false
   }
 }
 
-// Payment form
+// ── Countdown ────────────────────────────────────────
+const expiresAt = computed(() => reservation.value?.expiresAt ?? null)
+
+async function handleExpire() {
+  await reservationStore.cancelReservation()
+  toast.error(t('checkout.payment.expiredTitle'))
+  await router.push(localePath('/events'))
+}
+
+const { formatted: countdownFormatted, start: startCountdown } = useExpiryCountdown(
+  expiresAt,
+  { onExpire: handleExpire },
+)
+
+// ── Cancel dialog ────────────────────────────────────
+const showCancelDialog = ref(false)
+const isCancelling = ref(false)
+const cancelDialogRef = ref<HTMLElement | null>(null)
+
+watch(showCancelDialog, (show) => {
+  if (show) nextTick(() => cancelDialogRef.value?.querySelector<HTMLElement>('button')?.focus())
+})
+
+function trapCancelFocus(e: KeyboardEvent) {
+  if (e.key !== 'Tab') return
+  e.preventDefault()
+  const btns = cancelDialogRef.value?.querySelectorAll<HTMLElement>('button')
+  if (!btns?.length) return
+  const first = btns[0]
+  const last = btns[btns.length - 1]
+  if (!first || !last) return
+  if (e.shiftKey) { if (document.activeElement === first) last.focus() }
+  else { if (document.activeElement === last) first.focus() }
+}
+
+async function handleCancel() {
+  isCancelling.value = true
+  try {
+    await reservationStore.cancelReservation()
+    await router.push(localePath('/events'))
+  }
+  finally {
+    isCancelling.value = false
+    showCancelDialog.value = false
+  }
+}
+
+// ── Step 2: Payment form ─────────────────────────────
 const paymentSchema = toTypedSchema(
   z.object({
     cardNumber: z
@@ -135,46 +210,53 @@ const paymentSchema = toTypedSchema(
 )
 
 const { handleSubmit, defineField, errors } = useForm({ validationSchema: paymentSchema })
-
 const [cardNumber] = defineField('cardNumber')
 const [cardHolder] = defineField('cardHolder')
 const [expiry] = defineField('expiry')
 const [cvv] = defineField('cvv')
 
 const isSubmitting = ref(false)
-const completedOrder = ref<Order | null>(null)
 
-const onPaymentSubmit = handleSubmit(async () => {
-  const firstItem = cartStore.items[0]
-  if (!firstItem) return
+const orderTotal = computed(() => {
+  const rsv = reservation.value
+  if (!rsv || !event.value) return 0
+  const ticket = event.value.tickets.find(tk => tk.id === rsv.ticketId)
+  return (ticket?.price ?? 0) * rsv.quantity
+})
+
+const onPaymentSubmit = handleSubmit(async (values) => {
+  const rsv = reservation.value
+  if (!rsv) return
   isSubmitting.value = true
   try {
-    const res = await createOrder({
-      eventId: firstItem.eventId,
-      items: cartStore.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
+    const result = await completeOrder({
+      reservationId: rsv.id,
+      paymentInfo: {
+        cardHolder: values.cardHolder,
+        cardNumber: values.cardNumber,
+        expiry: values.expiry,
+        cvv: values.cvv,
+      },
     })
-    completedOrder.value = res.data
-    cartStore.clearCart()
-    stopCountdown()
-    currentStep.value = 4
+    completedOrder.value = result.data
+    reservationStore.completeReservation()
+    isDone.value = true
+    stopPolling()
   }
-  catch {
-    toast.error(t('common.error'))
+  catch (e) {
+    if (isAxiosError(e) && e.response?.status === 410) {
+      toast.error(t('checkout.payment.expiredTitle'))
+      reservationStore.clearState()
+      await router.push(localePath('/events'))
+    }
+    else {
+      toast.error(t('common.error'))
+    }
   }
   finally {
     isSubmitting.value = false
   }
 })
-
-// ── Navigation ───────────────────────────────────────
-function goToStep(step: 1 | 2 | 3 | 4) {
-  if (step === 3 && cartStore.isExpired) {
-    handleExpired()
-    return
-  }
-  currentStep.value = step
-  if (step === 3) startCountdown()
-}
 
 // SEO
 useSeoMeta({ title: () => `${t('checkout.steps.seat')} | TicketHub` })
@@ -182,154 +264,31 @@ useSeoMeta({ title: () => `${t('checkout.steps.seat')} | TicketHub` })
 
 <template>
   <div class="container mx-auto max-w-2xl px-4 py-8">
-    <!-- Stepper -->
-    <CheckoutStepper
-      v-if="currentStep < 4"
-      :steps="steps"
-      :current="currentStep"
-      class="mb-10"
-    />
 
-    <!-- ── Step 1: Seat Selection ── -->
-    <section v-if="currentStep === 1" aria-labelledby="step1-heading">
-      <h1 id="step1-heading" class="mb-2 text-2xl font-bold">
-        {{ $t('checkout.seat.title') }}
-      </h1>
-      <p class="mb-6 text-sm text-muted-foreground">
-        {{ $t('checkout.seat.instruction') }}
-      </p>
-
-      <SeatMap v-model="selectedSeats" :cart-items="cartStore.items" />
-
-      <div class="mt-8 flex justify-end">
-        <UiButton size="lg" :disabled="!allSeatsSelected" @click="goToStep(2)">
-          {{ $t('checkout.seat.continue') }}
-        </UiButton>
+    <!-- Restoring session -->
+    <div v-if="isRestoring" class="space-y-6" aria-busy="true" :aria-label="$t('common.loading')">
+      <div class="flex gap-4">
+        <UiSkeleton class="h-2 flex-1 rounded-full" />
+        <UiSkeleton class="h-2 flex-1 rounded-full" />
+        <UiSkeleton class="h-2 flex-1 rounded-full" />
       </div>
-    </section>
+      <UiSkeleton class="h-8 w-48" />
+      <UiSkeleton class="h-64 w-full" />
+    </div>
 
-    <!-- ── Step 2: Order Confirmation ── -->
-    <section v-else-if="currentStep === 2" aria-labelledby="step2-heading">
-      <h1 id="step2-heading" class="mb-6 text-2xl font-bold">
-        {{ $t('checkout.confirm.title') }}
-      </h1>
+    <template v-else-if="reservation || isDone">
 
-      <!-- Event info card -->
-      <div v-if="event" class="mb-6 flex gap-4 rounded-lg border bg-card p-4">
-        <img
-          :src="event.coverImage"
-          :alt="event.title"
-          class="h-20 w-28 shrink-0 rounded-md object-cover"
-          loading="lazy"
-        >
-        <div class="min-w-0">
-          <h2 class="font-semibold leading-tight">{{ event.title }}</h2>
-          <p class="mt-1 text-sm text-muted-foreground">{{ event.venue }}・{{ event.city }}</p>
-        </div>
-      </div>
+      <!-- Stepper (hidden on done screen) -->
+      <CheckoutStepper
+        v-if="!isDone"
+        :steps="steps"
+        :current="stepperCurrent"
+        class="mb-6"
+      />
 
-      <!-- Cart items or empty state -->
-      <template v-if="!cartStore.isEmpty">
-        <div class="rounded-lg border">
-          <div class="divide-y">
-            <div
-              v-for="item in cartStore.items"
-              :key="item.ticketId"
-              class="flex flex-wrap items-start gap-3 p-4 sm:items-center"
-            >
-              <!-- Ticket info -->
-              <div class="min-w-0 flex-1">
-                <p class="font-medium">{{ item.ticketType }}</p>
-                <p class="mt-0.5 text-xs text-muted-foreground">
-                  {{ formatSelectedSeats(item.ticketId) || '–' }}
-                </p>
-              </div>
-
-              <!-- Price -->
-              <span class="text-sm text-muted-foreground">
-                NT$&nbsp;{{ item.unitPrice.toLocaleString() }} ×
-              </span>
-
-              <!-- Quantity controls -->
-              <div
-                class="flex items-center gap-1"
-                role="group"
-                :aria-label="`${item.ticketType} ${$t('checkout.confirm.qty')}`"
-              >
-                <button
-                  class="flex h-7 w-7 items-center justify-center rounded border border-input bg-background transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-                  :disabled="item.quantity <= 1"
-                  :aria-label="`${$t('checkout.confirm.qty')} -1`"
-                  @click="decreaseItemQty(item.ticketId)"
-                >
-                  <Minus class="h-3 w-3" aria-hidden="true" />
-                </button>
-                <span class="w-7 text-center text-sm font-medium tabular-nums" aria-live="polite">
-                  {{ item.quantity }}
-                </span>
-                <button
-                  class="flex h-7 w-7 items-center justify-center rounded border border-input bg-background transition-colors hover:bg-accent"
-                  :aria-label="`${$t('checkout.confirm.qty')} +1`"
-                  @click="increaseItemQty(item.ticketId)"
-                >
-                  <Plus class="h-3 w-3" aria-hidden="true" />
-                </button>
-              </div>
-
-              <!-- Subtotal -->
-              <span class="w-24 text-right text-sm font-semibold">
-                NT$&nbsp;{{ (item.quantity * item.unitPrice).toLocaleString() }}
-              </span>
-
-              <!-- Remove -->
-              <button
-                class="ml-1 flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :aria-label="`${$t('checkout.confirm.remove')} ${item.ticketType}`"
-                @click="removeItem(item.ticketId)"
-              >
-                <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Total -->
-          <div class="flex items-center justify-between border-t bg-muted/40 px-4 py-3">
-            <span class="font-semibold">{{ $t('checkout.confirm.total') }}</span>
-            <span class="text-xl font-bold">
-              NT$&nbsp;{{ orderTotal.toLocaleString() }}
-            </span>
-          </div>
-        </div>
-
-        <div class="mt-8 flex items-center justify-between">
-          <UiButton variant="outline" @click="goToStep(1)">
-            {{ $t('checkout.confirm.back') }}
-          </UiButton>
-          <UiButton @click="goToStep(3)">
-            {{ $t('checkout.confirm.continue') }}
-          </UiButton>
-        </div>
-      </template>
-
-      <!-- Empty cart -->
-      <div v-else class="py-16 text-center">
-        <p class="text-muted-foreground">{{ $t('checkout.confirm.emptyCart') }}</p>
-        <UiButton class="mt-4" variant="outline" as-child>
-          <NuxtLink :to="localePath('/events')">
-            {{ $t('checkout.confirm.goEvents') }}
-          </NuxtLink>
-        </UiButton>
-      </div>
-    </section>
-
-    <!-- ── Step 3: Payment ── -->
-    <section v-else-if="currentStep === 3" aria-labelledby="step3-heading">
-      <h1 id="step3-heading" class="mb-6 text-2xl font-bold">
-        {{ $t('checkout.payment.title') }}
-      </h1>
-
-      <!-- Countdown timer -->
+      <!-- Countdown strip (visible during seat + payment steps) -->
       <div
+        v-if="!isDone && reservation"
         class="mb-6 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700"
         role="status"
         aria-live="polite"
@@ -341,141 +300,221 @@ useSeoMeta({ title: () => `${t('checkout.steps.seat')} | TicketHub` })
         </span>
       </div>
 
-      <!-- Payment form -->
-      <form class="space-y-5" novalidate @submit.prevent="onPaymentSubmit">
-        <!-- Card number -->
-        <div class="space-y-1.5">
-          <UiLabel for="card-number">{{ $t('checkout.payment.cardNumber') }}</UiLabel>
-          <UiInput
-            id="card-number"
-            v-model="cardNumber"
-            placeholder="1234 5678 9012 3456"
-            autocomplete="cc-number"
-            inputmode="numeric"
-          />
-          <p v-if="errors.cardNumber" class="text-sm text-destructive" role="alert">
-            {{ errors.cardNumber }}
-          </p>
-        </div>
+      <!-- ── Step 1: Seat Selection ── -->
+      <section v-if="!isDone && currentStep === 1" aria-labelledby="step1-heading">
+        <h1 id="step1-heading" class="mb-2 text-2xl font-bold">
+          {{ $t('checkout.seat.title') }}
+        </h1>
+        <p class="mb-4 text-sm text-muted-foreground">
+          {{ $t('checkout.seat.instruction') }}
+        </p>
 
-        <!-- Cardholder name -->
-        <div class="space-y-1.5">
-          <UiLabel for="card-holder">{{ $t('checkout.payment.cardHolder') }}</UiLabel>
-          <UiInput
-            id="card-holder"
-            v-model="cardHolder"
-            placeholder="CARD HOLDER NAME"
-            autocomplete="cc-name"
-          />
-          <p v-if="errors.cardHolder" class="text-sm text-destructive" role="alert">
-            {{ errors.cardHolder }}
+        <!-- Reservation summary -->
+        <div v-if="reservation" class="mb-6 rounded-lg border bg-card p-4">
+          <p class="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {{ $t('checkout.reservation.title') }}
           </p>
-        </div>
-
-        <!-- Expiry + CVV -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-1.5">
-            <UiLabel for="expiry">{{ $t('checkout.payment.expiry') }}</UiLabel>
-            <UiInput
-              id="expiry"
-              v-model="expiry"
-              placeholder="MM/YY"
-              autocomplete="cc-exp"
-              inputmode="numeric"
-              maxlength="5"
-            />
-            <p v-if="errors.expiry" class="text-sm text-destructive" role="alert">
-              {{ errors.expiry }}
-            </p>
-          </div>
-          <div class="space-y-1.5">
-            <UiLabel for="cvv">{{ $t('checkout.payment.cvv') }}</UiLabel>
-            <UiInput
-              id="cvv"
-              v-model="cvv"
-              placeholder="123"
-              autocomplete="cc-csc"
-              inputmode="numeric"
-              maxlength="4"
-            />
-            <p v-if="errors.cvv" class="text-sm text-destructive" role="alert">
-              {{ errors.cvv }}
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-semibold">
+                {{ seatMapItems[0]?.ticketType ?? '—' }}
+              </p>
+              <p class="text-sm text-muted-foreground">
+                {{ $t('checkout.reservation.qty', { count: reservation.quantity }) }}
+              </p>
+            </div>
+            <p class="text-lg font-bold text-primary">
+              NT$&nbsp;{{ orderTotal.toLocaleString() }}
             </p>
           </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="flex items-center justify-between pt-3">
-          <UiButton type="button" variant="outline" @click="goToStep(2)">
-            {{ $t('checkout.payment.back') }}
+        <SeatMap v-model="selectedSeats" :cart-items="seatMapItems" />
+
+        <div class="mt-8 flex items-center justify-between">
+          <UiButton
+            variant="outline"
+            :disabled="isCancelling"
+            @click="showCancelDialog = true"
+          >
+            {{ $t('checkout.cancel.button') }}
           </UiButton>
-          <UiButton type="submit" size="lg" :disabled="isSubmitting">
-            {{
-              isSubmitting
-                ? $t('checkout.payment.processing')
-                : $t('checkout.payment.submit', { amount: orderTotal.toLocaleString() })
-            }}
+          <UiButton
+            size="lg"
+            :disabled="!allSeatsSelected || isUpdatingSeats"
+            @click="confirmSeats"
+          >
+            {{ isUpdatingSeats ? $t('common.loading') : $t('checkout.seat.continue') }}
           </UiButton>
         </div>
-      </form>
+      </section>
 
-      <!-- Session expired overlay -->
-      <div
-        v-if="showExpiredModal"
-        ref="expiredDialogRef"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-        role="alertdialog"
-        aria-labelledby="expired-title"
-        aria-describedby="expired-desc"
-        aria-modal="true"
-        @keydown="trapModalFocus"
+      <!-- ── Step 2: Payment ── -->
+      <section v-else-if="!isDone && currentStep === 2" aria-labelledby="step2-heading">
+        <h1 id="step2-heading" class="mb-6 text-2xl font-bold">
+          {{ $t('checkout.payment.title') }}
+        </h1>
+
+        <!-- Event summary -->
+        <div v-if="event" class="mb-6 flex gap-4 rounded-lg border bg-card p-4">
+          <img
+            :src="event.coverImage"
+            :alt="event.title"
+            class="h-20 w-28 shrink-0 rounded-md object-cover"
+            loading="lazy"
+          >
+          <div class="min-w-0">
+            <h2 class="font-semibold leading-tight">{{ event.title }}</h2>
+            <p class="mt-1 text-sm text-muted-foreground">{{ event.venue }}・{{ event.city }}</p>
+            <p v-if="reservation" class="mt-1 text-sm font-medium">
+              {{ seatMapItems[0]?.ticketType }} × {{ reservation.quantity }}
+              <span class="ml-2 font-bold text-primary">NT$&nbsp;{{ orderTotal.toLocaleString() }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Payment form -->
+        <form class="space-y-5" novalidate @submit.prevent="onPaymentSubmit">
+          <div class="space-y-1.5">
+            <UiLabel for="card-number">{{ $t('checkout.payment.cardNumber') }}</UiLabel>
+            <UiInput
+              id="card-number"
+              v-model="cardNumber"
+              placeholder="1234 5678 9012 3456"
+              autocomplete="cc-number"
+              inputmode="numeric"
+            />
+            <p v-if="errors.cardNumber" class="text-sm text-destructive" role="alert">
+              {{ errors.cardNumber }}
+            </p>
+          </div>
+
+          <div class="space-y-1.5">
+            <UiLabel for="card-holder">{{ $t('checkout.payment.cardHolder') }}</UiLabel>
+            <UiInput
+              id="card-holder"
+              v-model="cardHolder"
+              placeholder="CARD HOLDER NAME"
+              autocomplete="cc-name"
+            />
+            <p v-if="errors.cardHolder" class="text-sm text-destructive" role="alert">
+              {{ errors.cardHolder }}
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <UiLabel for="expiry">{{ $t('checkout.payment.expiry') }}</UiLabel>
+              <UiInput
+                id="expiry"
+                v-model="expiry"
+                placeholder="MM/YY"
+                autocomplete="cc-exp"
+                inputmode="numeric"
+                maxlength="5"
+              />
+              <p v-if="errors.expiry" class="text-sm text-destructive" role="alert">
+                {{ errors.expiry }}
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <UiLabel for="cvv">{{ $t('checkout.payment.cvv') }}</UiLabel>
+              <UiInput
+                id="cvv"
+                v-model="cvv"
+                placeholder="123"
+                autocomplete="cc-csc"
+                inputmode="numeric"
+                maxlength="4"
+              />
+              <p v-if="errors.cvv" class="text-sm text-destructive" role="alert">
+                {{ errors.cvv }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-3">
+            <UiButton
+              type="button"
+              variant="outline"
+              :disabled="isCancelling"
+              @click="showCancelDialog = true"
+            >
+              {{ $t('checkout.cancel.button') }}
+            </UiButton>
+            <UiButton type="submit" size="lg" :disabled="isSubmitting">
+              {{
+                isSubmitting
+                  ? $t('checkout.payment.processing')
+                  : $t('checkout.payment.submit', { amount: orderTotal.toLocaleString() })
+              }}
+            </UiButton>
+          </div>
+        </form>
+      </section>
+
+      <!-- ── Step 3: Done ── -->
+      <section
+        v-else-if="isDone"
+        class="py-16 text-center"
+        aria-labelledby="done-heading"
       >
-        <div class="mx-4 max-w-sm rounded-xl border bg-card p-8 text-center shadow-lg">
-          <ClockIcon class="mx-auto mb-4 h-12 w-12 text-destructive" aria-hidden="true" />
-          <h2 id="expired-title" class="mb-2 text-xl font-bold">
-            {{ $t('checkout.payment.expiredTitle') }}
-          </h2>
-          <p id="expired-desc" class="mb-6 text-sm text-muted-foreground">
-            {{ $t('checkout.payment.expiredDesc') }}
-          </p>
-          <UiButton @click="handleExpired">
-            {{ $t('checkout.payment.restart') }}
+        <CheckCircleIcon class="mx-auto mb-6 h-20 w-20 text-emerald-500" aria-hidden="true" />
+        <h1 id="done-heading" class="mb-3 text-3xl font-bold">
+          {{ $t('checkout.done.title') }}
+        </h1>
+        <p class="mb-4 text-muted-foreground">
+          {{ $t('checkout.done.description') }}
+        </p>
+        <p v-if="completedOrder" class="mb-8 font-mono text-sm font-medium text-muted-foreground">
+          {{ $t('checkout.done.orderNumber') }}: {{ completedOrder.id }}
+        </p>
+        <div class="flex flex-wrap justify-center gap-3">
+          <UiButton as-child>
+            <NuxtLink
+              :to="completedOrder ? localePath(`/dashboard/orders/${completedOrder.id}`) : localePath('/dashboard/orders')"
+            >
+              {{ $t('checkout.done.viewOrders') }}
+            </NuxtLink>
+          </UiButton>
+          <UiButton variant="outline" as-child>
+            <NuxtLink :to="localePath('/')">
+              {{ $t('checkout.done.backHome') }}
+            </NuxtLink>
+          </UiButton>
+        </div>
+      </section>
+
+    </template>
+
+    <!-- ── Cancel confirmation dialog ── -->
+    <div
+      v-if="showCancelDialog"
+      ref="cancelDialogRef"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      role="alertdialog"
+      aria-labelledby="cancel-title"
+      aria-describedby="cancel-desc"
+      aria-modal="true"
+      @keydown="trapCancelFocus"
+    >
+      <div class="mx-4 max-w-sm rounded-xl border bg-card p-8 text-center shadow-lg">
+        <h2 id="cancel-title" class="mb-2 text-xl font-bold">
+          {{ $t('checkout.cancel.title') }}
+        </h2>
+        <p id="cancel-desc" class="mb-6 text-sm text-muted-foreground">
+          {{ $t('checkout.cancel.desc') }}
+        </p>
+        <div class="flex justify-center gap-3">
+          <UiButton variant="outline" :disabled="isCancelling" @click="showCancelDialog = false">
+            {{ $t('checkout.cancel.back') }}
+          </UiButton>
+          <UiButton variant="destructive" :disabled="isCancelling" @click="handleCancel">
+            {{ isCancelling ? $t('common.loading') : $t('checkout.cancel.confirm') }}
           </UiButton>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- ── Step 4: Order Complete ── -->
-    <section
-      v-else-if="currentStep === 4"
-      class="py-16 text-center"
-      aria-labelledby="step4-heading"
-    >
-      <CheckCircleIcon
-        class="mx-auto mb-6 h-20 w-20 text-emerald-500"
-        aria-hidden="true"
-      />
-      <h1 id="step4-heading" class="mb-3 text-3xl font-bold">
-        {{ $t('checkout.done.title') }}
-      </h1>
-      <p class="mb-4 text-muted-foreground">
-        {{ $t('checkout.done.description') }}
-      </p>
-      <p v-if="completedOrder" class="mb-8 font-mono text-sm font-medium text-muted-foreground">
-        {{ $t('checkout.done.orderNumber') }}: {{ completedOrder.id }}
-      </p>
-      <div class="flex flex-wrap justify-center gap-3">
-        <UiButton as-child>
-          <NuxtLink :to="localePath('/dashboard/orders')">
-            {{ $t('checkout.done.viewOrders') }}
-          </NuxtLink>
-        </UiButton>
-        <UiButton variant="outline" as-child>
-          <NuxtLink :to="localePath('/')">
-            {{ $t('checkout.done.backHome') }}
-          </NuxtLink>
-        </UiButton>
-      </div>
-    </section>
   </div>
 </template>

@@ -5,9 +5,11 @@ import type { Event } from '~/types'
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const localePath = useLocalePath()
 const slug = route.params.slug as string
-const cartStore = useCartStore()
+const { isAuthenticated } = useAuth()
+const { startReservation, isSoldOut } = useReservation()
 const { fetchEvent, fetchEvents } = useEvents()
 
 const { data, status } = useAsyncData(
@@ -36,6 +38,7 @@ useSeoMeta({
 })
 
 const quantities = ref<Record<string, number>>({})
+const isReserving = ref(false)
 
 watch(
   event,
@@ -45,6 +48,7 @@ watch(
   { immediate: true },
 )
 
+// Only one ticket type can be reserved per order
 const hasSelection = computed(() => Object.values(quantities.value).some(q => q > 0))
 
 const selectionTotal = computed(() => {
@@ -60,6 +64,10 @@ function qty(ticketId: string): number {
 }
 
 function increment(ticketId: string, max: number) {
+  // Exclusive selection: reset other types so only one zone is reserved per order
+  for (const key of Object.keys(quantities.value)) {
+    if (key !== ticketId) quantities.value[key] = 0
+  }
   const cur = qty(ticketId)
   if (cur < max) quantities.value[ticketId] = cur + 1
 }
@@ -69,23 +77,32 @@ function decrement(ticketId: string) {
   if (cur > 0) quantities.value[ticketId] = cur - 1
 }
 
-function addToCart() {
+watch(isSoldOut, (sold) => {
+  if (sold) toast.error(t('event.ticketSoldOut'))
+})
+
+async function buyNow() {
   if (!event.value) return
-  for (const tk of event.value.tickets) {
-    const q = qty(tk.id)
-    if (q > 0) {
-      cartStore.addItem({
-        eventId: event.value.id,
-        eventSlug: event.value.slug,
-        ticketId: tk.id,
-        ticketType: tk.type,
-        quantity: q,
-        unitPrice: tk.price,
-      })
-    }
+  if (!isAuthenticated.value) {
+    await router.push({ path: localePath('/auth/login'), query: { redirect: `/events/${slug}` } })
+    return
   }
-  quantities.value = Object.fromEntries(event.value.tickets.map(tk => [tk.id, 0]))
-  toast.success(t('event.addedToCart'))
+  const ticket = event.value.tickets.find(tk => qty(tk.id) > 0)
+  if (!ticket) return
+  isReserving.value = true
+  try {
+    await startReservation({
+      eventId: event.value.id,
+      ticketId: ticket.id,
+      quantity: qty(ticket.id),
+    })
+  }
+  catch {
+    toast.error(t('common.error'))
+  }
+  finally {
+    isReserving.value = false
+  }
 }
 
 function scrollToTickets() {
@@ -317,13 +334,17 @@ const formattedDate = computed(() => {
           </div>
         </div>
 
-        <!-- Add to cart footer -->
+        <!-- Buy now footer -->
         <div class="mt-5 flex items-center justify-end gap-4">
           <p v-if="hasSelection" class="text-sm text-muted-foreground">
             {{ locale === 'zh-TW' ? `合計 NT$\xa0${selectionTotal.toLocaleString()}` : `Total NT$\xa0${selectionTotal.toLocaleString()}` }}
           </p>
-          <UiButton size="lg" :disabled="!hasSelection" @click="addToCart">
-            {{ $t('event.addToCart') }}
+          <UiButton
+            size="lg"
+            :disabled="!hasSelection || isReserving"
+            @click="buyNow"
+          >
+            {{ isReserving ? $t('event.reserving') : $t('event.buyNow') }}
           </UiButton>
         </div>
       </section>

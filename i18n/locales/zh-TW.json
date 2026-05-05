@@ -116,8 +116,11 @@
     "tickets": "票種與票價",
     "available": "剩餘 {count} 張",
     "soldOut": "已售完",
+    "buyNow": "立即購票",
     "addToCart": "加入購物車",
     "addedToCart": "已加入購物車",
+    "ticketSoldOut": "票券已售完，請選擇其他票種或稍後再試",
+    "reserving": "預約中…",
     "related": "相關活動",
     "gallery": "更多圖片",
     "increase": "增加",
@@ -144,6 +147,17 @@
       "remaining": "還需選 {count} 個座位",
       "allSelected": "座位已選齊",
       "continue": "下一步"
+    },
+    "reservation": {
+      "title": "已預約票券",
+      "qty": "× {count} 張"
+    },
+    "cancel": {
+      "button": "取消預約",
+      "title": "取消預約",
+      "desc": "確定要取消此預約？票券將立即釋出，此操作無法復原。",
+      "confirm": "確認取消",
+      "back": "繼續購票"
     },
     "confirm": {
       "title": "確認訂單",
@@ -203,11 +217,18 @@
       "total": "金額",
       "view": "查看",
       "status": {
+        "pending_seats": "選座中",
+        "pending_payment": "待付款",
         "pending": "待確認",
         "confirmed": "已確認",
         "cancelled": "已取消",
         "refunded": "已退款"
-      }
+      },
+      "pendingSection": "未完成訂單",
+      "pendingAlert": "此預約尚未完成，請盡快繼續購票",
+      "resume": "繼續購票",
+      "cancelPending": "取消預約",
+      "cancelPendingConfirm": "確認取消此預約？票券將立即釋出。"
     },
     "orderDetail": {
       "title": "訂單詳情",

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { QrCodeIcon } from 'lucide-vue-next'
+import { QrCodeIcon, ClockIcon } from 'lucide-vue-next'
+import { useReservation } from '~/composables/useReservation'
+import { useReservationStore } from '~/stores/reservation'
 import type { OrderStatus } from '~/types'
 
 definePageMeta({ middleware: 'auth' })
@@ -9,6 +11,8 @@ const localePath = useLocalePath()
 const route = useRoute()
 const id = route.params.id as string
 const { fetchOrder } = useOrders()
+const { resumeReservation } = useReservation()
+const reservationStore = useReservationStore()
 
 useSeoMeta({ title: () => `${t('dashboard.orderDetail.title')} | TicketHub` })
 
@@ -23,6 +27,39 @@ const { data: order, status } = useAsyncData(
 
 const isLoading = computed(() => status.value === 'idle' || status.value === 'pending')
 const isNotFound = computed(() => status.value === 'success' && !order.value)
+
+const isPending = computed(() =>
+  order.value?.status === 'pending_seats' || order.value?.status === 'pending_payment',
+)
+
+// Fetch reservation data for countdown when order is pending
+const expiresAt = ref<string | null>(null)
+const isResuming = ref(false)
+
+watch(order, async (o) => {
+  if (!o?.reservationId || !isPending.value) return
+  try {
+    const data = await reservationStore.fetchReservation(o.reservationId)
+    expiresAt.value = data.expiresAt
+  }
+  catch {
+    expiresAt.value = null
+  }
+}, { immediate: true })
+
+const { formatted: countdownFormatted } = useExpiryCountdown(expiresAt)
+
+async function handleResume() {
+  const reservationId = order.value?.reservationId
+  if (!reservationId) return
+  isResuming.value = true
+  try {
+    await resumeReservation(reservationId)
+  }
+  finally {
+    isResuming.value = false
+  }
+}
 
 function statusClass(s: OrderStatus): string {
   if (s === 'confirmed') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
@@ -68,6 +105,34 @@ function formatDate(iso: string): string {
 
       <!-- Order detail -->
       <template v-else-if="order">
+
+        <!-- Pending alert banner -->
+        <div
+          v-if="isPending"
+          class="mb-6 flex flex-col gap-3 rounded-lg border-2 border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+          role="alert"
+        >
+          <div class="flex items-start gap-3">
+            <ClockIcon class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+            <div>
+              <p class="font-semibold text-amber-800">{{ $t('dashboard.ordersPage.pendingSection') }}</p>
+              <p class="text-sm text-amber-700">{{ $t('dashboard.ordersPage.pendingAlert') }}</p>
+              <p
+                v-if="expiresAt"
+                class="mt-1 font-mono text-sm font-bold text-amber-800"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {{ $t('checkout.payment.timeLeft', { time: countdownFormatted }) }}
+              </p>
+            </div>
+          </div>
+          <UiButton size="sm" :disabled="isResuming" @click="handleResume">
+            {{ isResuming ? $t('common.loading') : $t('dashboard.ordersPage.resume') }}
+          </UiButton>
+        </div>
+
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 class="text-2xl font-bold">{{ $t('dashboard.orderDetail.title') }}</h1>
           <span
