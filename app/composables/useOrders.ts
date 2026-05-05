@@ -1,4 +1,4 @@
-import type { ApiResponse, Order, CreateOrderPayload } from '~/types'
+import type { ApiResponse, Order, CreateOrderPayload, CompleteOrderPayload } from '~/types'
 
 export function useOrders() {
   const api = useApi()
@@ -18,5 +18,10 @@ export function useOrders() {
     return data
   }
 
-  return { fetchOrders, fetchOrder, createOrder }
+  async function completeOrder(payload: CompleteOrderPayload) {
+    const { data } = await api.post<ApiResponse<Order>>('/orders', payload)
+    return data
+  }
+
+  return { fetchOrders, fetchOrder, createOrder, completeOrder }
 }
