@@ -39,7 +39,13 @@ export interface OrderItem {
   unitPrice: number
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'cancelled' | 'refunded'
+export type OrderStatus =
+  | 'pending_seats'
+  | 'pending_payment'
+  | 'pending'
+  | 'confirmed'
+  | 'cancelled'
+  | 'refunded'
 
 export interface Order {
   id: string
@@ -49,6 +55,21 @@ export interface Order {
   items: OrderItem[]
   total: number
   status: OrderStatus
+  reservationId?: string
+  createdAt: string
+}
+
+export type ReservationStatus = 'pending_seats' | 'pending_payment' | 'expired' | 'cancelled'
+
+export interface Reservation {
+  id: string
+  userId: string
+  eventId: string
+  ticketId: string
+  quantity: number
+  status: ReservationStatus
+  expiresAt: string
+  selectedSeats: string[]
   createdAt: string
 }
 
@@ -113,4 +134,24 @@ export interface CreateOrderPayload {
     ticketId: string
     quantity: number
   }>
+}
+
+export interface CreateReservationPayload {
+  eventId: string
+  ticketId: string
+  quantity: number
+}
+
+export interface UpdateReservationSeatsPayload {
+  selectedSeats: string[]
+}
+
+export interface CompleteOrderPayload {
+  reservationId: string
+  paymentInfo: {
+    cardHolder: string
+    cardNumber: string
+    expiry: string
+    cvv: string
+  }
 }

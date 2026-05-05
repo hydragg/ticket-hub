@@ -1,13 +1,11 @@
 import { http, HttpResponse } from 'msw'
-import { mockOrders, mockEvents, MOCK_ACCESS_TOKEN } from '../data'
-import type { Order, CreateOrderPayload } from '~/types'
+import { mockEvents, MOCK_ACCESS_TOKEN } from '../data'
+import { lockedInventory, reservationsDb, sessionOrders } from '../data/store'
+import type { CompleteOrderPayload } from '~/types'
 
 function isAuthorized(request: Request): boolean {
   return request.headers.get('Authorization') === `Bearer ${MOCK_ACCESS_TOKEN}`
 }
-
-// In-memory store for orders created during the session
-const sessionOrders: Order[] = [...mockOrders]
 
 export const ordersHandlers = [
   http.get('/api/orders', ({ request }) => {
@@ -33,43 +31,41 @@ export const ordersHandlers = [
       return HttpResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json() as CreateOrderPayload
-    const event = mockEvents.find(e => e.id === body.eventId)
-    if (!event) {
-      return HttpResponse.json({ success: false, message: '找不到活動' }, { status: 404 })
+    const body = (await request.json()) as CompleteOrderPayload
+    const reservation = reservationsDb.get(body.reservationId)
+
+    if (!reservation) {
+      return HttpResponse.json({ success: false, message: '找不到預約' }, { status: 404 })
     }
 
-    const items = body.items.map((item) => {
-      const ticket = event.tickets.find(t => t.id === item.ticketId)
-      return {
-        ticketId: item.ticketId,
-        ticketType: ticket?.type ?? '',
-        quantity: item.quantity,
-        unitPrice: ticket?.price ?? 0,
-      }
-    })
-
-    const total = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
-
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
-      userId: 'user-1',
-      eventId: body.eventId,
-      event: {
-        id: event.id,
-        title: event.title,
-        date: event.date,
-        venue: event.venue,
-        city: event.city,
-        coverImage: event.coverImage,
-      },
-      items,
-      total,
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
+    if (reservation.status !== 'pending_payment') {
+      return HttpResponse.json({ success: false, message: '預約狀態不允許結帳' }, { status: 409 })
     }
 
-    sessionOrders.push(newOrder)
-    return HttpResponse.json({ success: true, data: newOrder }, { status: 201 })
+    if (new Date() > new Date(reservation.expiresAt)) {
+      reservation.status = 'expired'
+      const expiredOrder = sessionOrders.find(o => o.reservationId === reservation.id)
+      if (expiredOrder) expiredOrder.status = 'cancelled'
+      return HttpResponse.json({ success: false, message: '預約已逾時' }, { status: 410 })
+    }
+
+    // Convert inventory lock to permanent sale
+    const event = mockEvents.find(e => e.id === reservation.eventId)
+    const ticket = event?.tickets.find(t => t.id === reservation.ticketId)
+    if (ticket) {
+      ticket.available = Math.max(0, ticket.available - reservation.quantity)
+    }
+    const locked = lockedInventory.get(reservation.ticketId) ?? 0
+    lockedInventory.set(reservation.ticketId, Math.max(0, locked - reservation.quantity))
+
+    const order = sessionOrders.find(o => o.reservationId === reservation.id)
+    if (!order) {
+      return HttpResponse.json({ success: false, message: '找不到訂單' }, { status: 404 })
+    }
+
+    order.status = 'confirmed'
+    reservationsDb.delete(body.reservationId)
+
+    return HttpResponse.json({ success: true, data: order })
   }),
 ]
