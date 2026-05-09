@@ -33,10 +33,8 @@ onMounted(async () => {
       await router.replace(localePath('/events'))
       return
     }
-    if (data.status === 'pending_payment') {
-      startCountdown()
-      startPolling()
-    }
+    startCountdown()
+    // startPolling()
   }
   catch {
     reservationStore.clearState()
