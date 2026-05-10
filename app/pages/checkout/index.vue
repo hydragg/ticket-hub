@@ -34,7 +34,7 @@ onMounted(async () => {
       return
     }
     startCountdown()
-    // startPolling()
+    startPolling()
   }
   catch {
     reservationStore.clearState()
