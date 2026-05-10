@@ -1,9 +1,12 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, delay } from 'msw'
 import { mockEvents } from '../data'
 import type { EventCategory } from '~/types'
 
+const MOCK_DELAY = 800
+
 export const eventsHandlers = [
-  http.get('/api/events', ({ request }) => {
+  http.get('/api/events', async ({ request }) => {
+    await delay(MOCK_DELAY)
     const url = new URL(request.url)
     const category = url.searchParams.get('category') as EventCategory | null
     const city = url.searchParams.get('city')
@@ -45,7 +48,8 @@ export const eventsHandlers = [
     })
   }),
 
-  http.get('/api/events/:slug', ({ params }) => {
+  http.get('/api/events/:slug', async ({ params }) => {
+    await delay(MOCK_DELAY)
     const event = mockEvents.find(e => e.slug === params.slug)
     if (!event) {
       return HttpResponse.json(

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, delay } from 'msw'
 import { mockUser, MOCK_ACCESS_TOKEN } from '../data'
 import type { User } from '~/types'
 
@@ -6,10 +6,13 @@ function isAuthorized(request: Request): boolean {
   return request.headers.get('Authorization') === `Bearer ${MOCK_ACCESS_TOKEN}`
 }
 
+const MOCK_DELAY = 800
+
 let currentUser = { ...mockUser }
 
 export const userHandlers = [
-  http.get('/api/user/profile', ({ request }) => {
+  http.get('/api/user/profile', async ({ request }) => {
+    await delay(MOCK_DELAY)
     if (!isAuthorized(request)) {
       return HttpResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }

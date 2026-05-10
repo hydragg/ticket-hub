@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, delay } from 'msw'
 import { mockEvents, MOCK_ACCESS_TOKEN } from '../data'
 import { lockedInventory, reservationsDb, sessionOrders } from '../data/store'
 import type { CompleteOrderPayload } from '~/types'
@@ -7,15 +7,19 @@ function isAuthorized(request: Request): boolean {
   return request.headers.get('Authorization') === `Bearer ${MOCK_ACCESS_TOKEN}`
 }
 
+const MOCK_DELAY = 800
+
 export const ordersHandlers = [
-  http.get('/api/orders', ({ request }) => {
+  http.get('/api/orders', async ({ request }) => {
+    await delay(MOCK_DELAY)
     if (!isAuthorized(request)) {
       return HttpResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
     return HttpResponse.json({ success: true, data: sessionOrders })
   }),
 
-  http.get('/api/orders/:id', ({ request, params }) => {
+  http.get('/api/orders/:id', async ({ request, params }) => {
+    await delay(MOCK_DELAY)
     if (!isAuthorized(request)) {
       return HttpResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
