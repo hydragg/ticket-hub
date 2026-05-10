@@ -30,6 +30,7 @@ coverage/
 TECHSTACK.md
 todo.md
 CLAUDE.md
+ISSUES.md
 
 # Claude Code local settings
 .claude/settings.local.json
