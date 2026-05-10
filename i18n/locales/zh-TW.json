@@ -63,9 +63,13 @@
     "categories": {
       "title": "活動分類",
       "concert": "演唱會",
+      "concertDesc": "頂尖歌手與樂團現場演出",
       "comedy": "喜劇脫口秀",
+      "comedyDesc": "笑聲不斷，療癒身心",
       "theater": "音樂劇場",
-      "all": "全部活動"
+      "theaterDesc": "舞台藝術，視覺盛宴",
+      "all": "全部活動",
+      "allDesc": "探索所有精彩演出"
     },
     "featured": {
       "title": "精選活動",

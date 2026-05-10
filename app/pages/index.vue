@@ -59,8 +59,23 @@ const isLoading = computed(
         </div>
       </div>
 
-      <!-- Category section (static, no API) -->
-      <CategorySection />
+      <!-- Category skeleton -->
+      <section class="container mx-auto px-4 py-10 sm:px-6">
+        <UiSkeleton class="mb-6 h-7 w-32" />
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            v-for="n in 4"
+            :key="n"
+            class="flex items-center gap-4 rounded-xl border border-border bg-card p-5"
+          >
+            <UiSkeleton class="h-12 w-12 shrink-0 rounded-lg" />
+            <div class="flex-1 space-y-2">
+              <UiSkeleton class="h-4 w-24" />
+              <UiSkeleton class="h-3 w-36" />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Featured events skeleton -->
       <section class="py-10">

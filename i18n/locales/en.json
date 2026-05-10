@@ -63,9 +63,13 @@
     "categories": {
       "title": "Browse by Category",
       "concert": "Concerts",
+      "concertDesc": "Live music from top artists & bands",
       "comedy": "Comedy",
+      "comedyDesc": "Stand-up shows to lift your spirits",
       "theater": "Theater",
-      "all": "All Events"
+      "theaterDesc": "Stage performances & musicals",
+      "all": "All Events",
+      "allDesc": "Explore all upcoming events"
     },
     "featured": {
       "title": "Featured Events",
